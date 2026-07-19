@@ -2,53 +2,56 @@ import serial
 import pyautogui
 import time
 
-# Setează portul tău COM (verifică în Arduino IDE la Tools -> Port)
-PORT = 'COM3' 
+PORT = 'COM3'
 BAUD_RATE = 9600
 
-# Conectarea la Arduino
 try:
-    arduino = serial.Serial(PORT, BAUD_RATE)
-    print(f"Conectat la Arduino pe {PORT}. Mișcă joystick-ul!")
+    arduino = serial.Serial(PORT, BAUD_RATE, timeout=0.1)
+    print(f"Conectat pe {PORT}. Așteptăm inițializarea Arduino...")
+    
+    time.sleep(2) 
+    
+    latime_ecran, inaltime_ecran = pyautogui.size()
+    print(f"Rezoluție ecran detectată: {latime_ecran}x{inaltime_ecran}")
+    
+    mesaj_rezolutie = f"W{latime_ecran},H{inaltime_ecran}\n"
+    
+    arduino.write(mesaj_rezolutie.encode('utf-8'))
+    print("Marginile au fost trimise către Arduino. Pornește citirea senzorului!")
+
 except Exception as e:
     print(f"Eroare la conectare: {e}")
     exit()
 
 while True:
     if arduino.in_waiting > 0:
-        # Citim și decodăm linia primită
         data = arduino.readline().decode('utf-8').strip()
         
         if data:
             try:
-                # Împărțim textul în variabile
-                x_str, y_str, btn_str = data.split(',')
+                x_str, z_str, btn_str = data.split(',')
                 x_val = int(x_str)
-                y_val = int(y_str)
+                z_val = int(z_str)
                 btn_val = int(btn_str)
+
+                prag = 15
+                viteza = 1
 
                 move_x = 0
                 move_y = 0
-                viteza = 10 # Câți pixeli să se miște
 
-                # Când joystick-ul este în centru, valoarea e undeva la 512
-                # Creăm o zonă moartă (deadzone) între 400 și 600 ca să nu se miște singur
-                if x_val > 600: move_x = viteza
-                elif x_val < 400: move_x = -viteza
+                if x_val > latime_ecran: move_x = int((x_val - latime_ecran) * viteza)
+                elif x_val < 0: move_x = int((x_val - 0) * viteza)
 
-                if y_val > 600: move_y = viteza
-                elif y_val < 400: move_y = -viteza
+                if z_val > inaltime_ecran: move_y = int((z_val - inaltime_ecran) * viteza)
+                elif z_val < 0: move_y = int((z_val - 0) * viteza)
 
-                # Mutăm cursorul doar dacă este cazul
                 if move_x != 0 or move_y != 0:
-                    # Mișcăm relativ față de poziția curentă
                     pyautogui.move(move_x, move_y)
 
-                # Logica de click (dacă e 0, înseamnă că e apăsat datorită INPUT_PULLUP)
                 if btn_val == 0:
                     pyautogui.click()
-                    time.sleep(0.3) # Pauză scurtă pentru a evita click-uri multiple
+                    time.sleep(0.3)
 
             except ValueError:
-                # Ignorăm erorile dacă Arduino a trimis date incomplete
                 pass
