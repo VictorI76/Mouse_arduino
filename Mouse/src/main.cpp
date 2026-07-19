@@ -113,7 +113,7 @@ void getGyroAngles() {
   float dt = (currentTime - lastTimestamp) / 1000.0;
   lastTimestamp = currentTime;
 
-  float accYaw = atan2(a.acceleration.x, a.acceleration.z) * 180.0 / PI;
+  // float accYaw = atan2(a.acceleration.x, a.acceleration.z) * 180.0 / PI;
   float accRoll  = atan2(a.acceleration.y, a.acceleration.z) * 180.0 / PI;
 
   float gyroX_deg = g.gyro.x * 180.0 / PI;
@@ -121,7 +121,8 @@ void getGyroAngles() {
 
   float alpha = 0.96;
   
-  angleYaw= alpha * (angleYaw + gyroZ_deg * dt) + (1.0 - alpha) * accYaw;
+  // angleYaw= alpha * (angleYaw + gyroZ_deg * dt) + (1.0 - alpha) * accYaw;
+  angleYaw= angleYaw + gyroZ_deg * dt;
   
   angleRoll  = alpha * (angleRoll  + gyroX_deg * dt) + (1.0 - alpha) * accRoll;
 
