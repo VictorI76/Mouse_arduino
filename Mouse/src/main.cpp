@@ -19,7 +19,7 @@ unsigned long lastTimestamp = 0;
 
 int xVal = 0;
 int zVal = 0;
-volatile bool btnState = 1;
+volatile bool btnState = 0;
 volatile bool ledState = 0;
 volatile bool event = false;
 int maxScreenX = 1023;
@@ -33,7 +33,7 @@ int aux = 0;
 void setup() {
   Serial.begin(9600);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), changeBtnState, FALLING);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), changeBtnState, CHANGE);
   pinMode(LED_BUILTIN, OUTPUT);
 
   init_gyro();
@@ -63,16 +63,13 @@ void loop() {
   getGyroAngles();
   generateMouseCommand();
 
-  if (0) {
+  if (event || btnState) {
     Serial.print(xVal);
     Serial.print(",");
     Serial.print(zVal);
     Serial.print(",");
     Serial.println(btnState);
 
-    // if (btnState == 0) {
-    //   btnState = 1;
-    // }
   }
 
   delay(30);
@@ -113,57 +110,46 @@ void getGyroAngles() {
   float dt = (currentTime - lastTimestamp) / 1000.0;
   lastTimestamp = currentTime;
 
-  // float accYaw = atan2(a.acceleration.x, a.acceleration.z) * 180.0 / PI;
+  float accPitch = atan2(-a.acceleration.x, sqrt(a.acceleration.y * a.acceleration.y + a.acceleration.z * a.acceleration.z)) * 180.0 / PI;
   float accRoll  = atan2(a.acceleration.y, a.acceleration.z) * 180.0 / PI;
 
   float gyroX_deg = g.gyro.x * 180.0 / PI;
-  float gyroZ_deg = g.gyro.z * 180.0 / PI;
+  float gyroY_deg = g.gyro.y * 180.0 / PI;
 
   float alpha = 0.96;
   
-  // angleYaw= alpha * (angleYaw + gyroZ_deg * dt) + (1.0 - alpha) * accYaw;
-  angleYaw= angleYaw + gyroZ_deg * dt;
+  anglePitch = alpha * (anglePitch  + gyroY_deg * dt) + (1.0 - alpha) * accPitch;
   
   angleRoll  = alpha * (angleRoll  + gyroX_deg * dt) + (1.0 - alpha) * accRoll;
 
-
-  if (aux == 10) {
-    Serial.print("Yaw: ");
-    Serial.print(angleYaw);
-    Serial.print("Roll: ");
-    Serial.println(angleRoll);
-    aux = 0;
-  }
-
-  aux++;
 }
 
 
 void generateMouseCommand() {
-  const float threshold = 5.0;
+  const float threshold = 10.0;
   const float sensitivity = 0.2;
   const int screenLimitX = maxScreenX;
   const int screenLimitY = maxScreenY;
 
   if (angleRoll > threshold) {
-    xVal += (angleRoll - threshold) * sensitivity;
+    xVal += angleRoll * sensitivity;
     if (xVal > screenLimitX) xVal = screenLimitX;
 
     event = true;
   } else if (angleRoll < -threshold) {
-    xVal += (angleRoll + threshold) * sensitivity;
+    xVal += angleRoll * sensitivity;
     if (xVal < 0) xVal = 0;
 
     event = true;
   }
 
   if (anglePitch > threshold) {
-    zVal -= (anglePitch - threshold) * sensitivity;
+    zVal -= anglePitch * sensitivity;
     if (zVal < 0) zVal = 0;
 
     event = true;
   } else if (anglePitch < -threshold) {
-    zVal -= (anglePitch + threshold) * sensitivity;
+    zVal -= anglePitch * sensitivity;
     if (zVal > screenLimitY) zVal = screenLimitY;
 
     event = true;
@@ -176,11 +162,14 @@ void changeBtnState() {
   unsigned long currentTime = millis();
   
   if (currentTime - lastClick > timeDebounce) {
-    btnState ^= 1;
+    if (btnState) {
+      btnState = 0;
+    } else {
+      btnState = 1;
+    }
     event = true;
     lastClick = currentTime;
   }
 
-  ledState ^= 1;
   digitalWrite(LED_BUILTIN, ledState);
 }
