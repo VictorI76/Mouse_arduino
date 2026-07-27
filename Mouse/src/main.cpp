@@ -4,7 +4,7 @@
 #include <Adafruit_Sensor.h>
 
 #define BUTTON_PIN 2
-#define USER_SCREEN_SIZE false
+bool USER_SCREEN_SIZE = true;
 
 void init_gyro();
 void getGyroAngles();
@@ -17,13 +17,14 @@ float angleRoll = 0.0;
 float angleYaw = 0.0;
 unsigned long lastTimestamp = 0;
 
-int xVal = 0;
-int zVal = 0;
+
 volatile bool btnState = 0;
 volatile bool ledState = 0;
 volatile bool event = false;
 int maxScreenX = 1023;
 int maxScreenY = 1023;
+int xVal = 512;
+int yVal = 512;
 
 volatile unsigned long lastClick = 0;
 const unsigned long timeDebounce = 50; // 50 ms debounce time
@@ -54,9 +55,17 @@ void loop() {
           
           maxScreenX = strX.toInt();
           maxScreenY = strY.toInt();
+
+          xVal = maxScreenX / 2;
+          yVal = maxScreenY / 2;
+
+          Serial.write("Marginile au fost primite cu succes!\n");
+          
         }
       }
     }
+
+    USER_SCREEN_SIZE = false;
   }
 
 
@@ -66,14 +75,18 @@ void loop() {
   if (event || btnState) {
     Serial.print(xVal);
     Serial.print(",");
-    Serial.print(zVal);
+    Serial.print(yVal);
     Serial.print(",");
     Serial.println(btnState);
 
+    ledState = !ledState;
+    digitalWrite(LED_BUILTIN, ledState);
   }
 
   delay(30);
   event = false;
+
+  ledState = 0;
 }
 
 
@@ -144,13 +157,13 @@ void generateMouseCommand() {
   }
 
   if (anglePitch > threshold) {
-    zVal -= anglePitch * sensitivity;
-    if (zVal < 0) zVal = 0;
+    yVal -= anglePitch * sensitivity;
+    if (yVal < 0) yVal = 0;
 
     event = true;
   } else if (anglePitch < -threshold) {
-    zVal -= anglePitch * sensitivity;
-    if (zVal > screenLimitY) zVal = screenLimitY;
+    yVal -= anglePitch * sensitivity;
+    if (yVal > screenLimitY) yVal = screenLimitY;
 
     event = true;
   }
@@ -171,5 +184,4 @@ void changeBtnState() {
     lastClick = currentTime;
   }
 
-  digitalWrite(LED_BUILTIN, ledState);
 }
