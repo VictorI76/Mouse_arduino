@@ -27,6 +27,7 @@ except Exception as e:
     exit()
 
 btn_pressed = False
+pyautogui.PAUSE = 0
 
 while True:
     if arduino.in_waiting > 0:

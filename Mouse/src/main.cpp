@@ -14,7 +14,8 @@ void changeBtnState();
 Adafruit_MPU6050 mpu;
 float anglePitch = 0.0;
 float angleRoll = 0.0;
-float angleYaw = 0.0;
+float lastAnglePitch = 0.0;
+float lastAngleRoll = 0.0;
 unsigned long lastTimestamp = 0;
 
 
@@ -136,31 +137,38 @@ void getGyroAngles() {
 
 
 void generateMouseCommand() {
-  const float threshold = 30.0;
-  const float sensitivity = 0.5;
+  const float threshold = 25.0;
+  const float sensitivity = 0.2;
   const int screenLimitX = maxScreenX;
   const int screenLimitY = maxScreenY;
 
+  if (lastAnglePitch == anglePitch || lastAngleRoll == angleRoll) {
+    return;
+  } else {
+    lastAnglePitch = anglePitch;
+    lastAngleRoll = angleRoll;
+  }
+
   if (angleRoll > threshold) {
     xVal += angleRoll * sensitivity;
-    if (xVal > screenLimitX) xVal = screenLimitX;
+    // if (xVal > screenLimitX) xVal = screenLimitX;
 
     event = true;
   } else if (angleRoll < -threshold) {
     xVal += angleRoll * sensitivity;
-    if (xVal < 0) xVal = 0;
+    // if (xVal < 0) xVal = 0;
 
     event = true;
   }
 
   if (anglePitch > threshold) {
     yVal += anglePitch * sensitivity;
-    if (yVal < 0) yVal = 0;
+    // if (yVal < 0) yVal = 0;
 
     event = true;
   } else if (anglePitch < -threshold) {
     yVal += anglePitch * sensitivity;
-    if (yVal > screenLimitY) yVal = screenLimitY;
+    // if (yVal > screenLimitY) yVal = screenLimitY;
 
     event = true;
   }
