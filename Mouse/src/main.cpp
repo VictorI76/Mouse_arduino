@@ -91,15 +91,12 @@ void loop() {
 
 
 void init_gyro() {
-  Serial.println("Inițializare test MPU6050...");
-
   if (!mpu.begin()) {
-    Serial.println("Eroare MPU6050");
+    Serial.println("Error MPU6050");
     while (1) {
       delay(10);
     }
   }
-  Serial.println("MPU6050 a fost găsit cu succes!");
 
   mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
   mpu.setGyroRange(MPU6050_RANGE_500_DEG);
@@ -139,8 +136,8 @@ void getGyroAngles() {
 
 
 void generateMouseCommand() {
-  const float threshold = 10.0;
-  const float sensitivity = 0.2;
+  const float threshold = 30.0;
+  const float sensitivity = 0.5;
   const int screenLimitX = maxScreenX;
   const int screenLimitY = maxScreenY;
 
@@ -157,12 +154,12 @@ void generateMouseCommand() {
   }
 
   if (anglePitch > threshold) {
-    yVal -= anglePitch * sensitivity;
+    yVal += anglePitch * sensitivity;
     if (yVal < 0) yVal = 0;
 
     event = true;
   } else if (anglePitch < -threshold) {
-    yVal -= anglePitch * sensitivity;
+    yVal += anglePitch * sensitivity;
     if (yVal > screenLimitY) yVal = screenLimitY;
 
     event = true;

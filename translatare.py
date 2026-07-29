@@ -9,7 +9,7 @@ try:
     arduino = serial.Serial(PORT, BAUD_RATE, timeout=0.1)
     print(f"Conectat pe {PORT}. Așteptăm inițializarea Arduino...")
     
-    time.sleep(2) 
+    time.sleep(2)
     
     latime_ecran, inaltime_ecran = pyautogui.size()
     print(f"Rezoluție ecran detectată: {latime_ecran}x{inaltime_ecran}")
@@ -26,6 +26,8 @@ except Exception as e:
     print(f"Eroare la conectare: {e}")
     exit()
 
+btn_pressed = False
+
 while True:
     if arduino.in_waiting > 0:
         data = arduino.readline().decode('utf-8').strip()
@@ -37,28 +39,16 @@ while True:
                 y_val = int(y_str)
                 btn_val = int(btn_str)
 
-                viteza = 1
+                x_val = max(0, min(x_val, latime_ecran))
+                y_val = max(0, min(y_val, inaltime_ecran))
 
-                move_x = 0
-                move_y = 0
+                pyautogui.moveTo(x_val, y_val)
 
-                if x_val > latime_ecran: 
-                    move_x = latime_ecran
-                elif x_val < 0: 
-                    move_x = 0
-
-                if y_val > inaltime_ecran: 
-                    move_y = inaltime_ecran
-                elif y_val < 0: 
-                    move_y = 0
-
-                if move_x >= 0 or move_y >= 0:
-                    pyautogui.move(move_x, move_y)
-
-                if btn_val == 1:
+                if btn_val == 1 and not btn_pressed:
                     pyautogui.click()
-                    time.sleep(0.3)
-                    btn_val = 0
+                    btn_pressed = True
+                elif btn_val == 0:
+                    btn_pressed = False
 
             except ValueError:
                 pass
