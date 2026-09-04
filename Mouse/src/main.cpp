@@ -6,11 +6,13 @@
 #define BUTTON_PIN 2
 bool USER_SCREEN_SIZE = true;
 
+// 
 void init_gyro();
 void getGyroAngles();
 void generateMouseCommand();
 void changeBtnState();
 
+// 
 Adafruit_MPU6050 mpu;
 float anglePitch = 0.0;
 float angleRoll = 0.0;
@@ -18,7 +20,7 @@ float lastAnglePitch = 0.0;
 float lastAngleRoll = 0.0;
 unsigned long lastTimestamp = 0;
 
-
+// 
 volatile bool btnState = 0;
 volatile bool ledState = 0;
 volatile bool event = false;
@@ -27,13 +29,17 @@ int maxScreenY = 1023;
 int xVal = 512;
 int yVal = 512;
 
+// Citeste de pe serial
+bool read_value = false;
+char value[10];
+int i = 0;
+
+// 
 volatile unsigned long lastClick = 0;
 const unsigned long timeDebounce = 50; // 50 ms debounce time
 
-int aux = 0;
-
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), changeBtnState, CHANGE);
   pinMode(LED_BUILTIN, OUTPUT);
@@ -45,49 +51,57 @@ void loop() {
 
   if (USER_SCREEN_SIZE) {
     while (Serial.available() > 0) {
-      String mesajPrimit = Serial.readStringUntil('\n');
-      
-      if (mesajPrimit.startsWith("W")) {
-        int indexVirgula = mesajPrimit.indexOf(',');
-        
-        if (indexVirgula != -1) {
-          String strX = mesajPrimit.substring(1, indexVirgula);
-          String strY = mesajPrimit.substring(indexVirgula + 2);
-          
-          maxScreenX = strX.toInt();
-          maxScreenY = strY.toInt();
+      char c;
+      c = Serial.read();
 
-          xVal = maxScreenX / 2;
-          yVal = maxScreenY / 2;
+      if (c == ',') {
+        value[i] = '\0';
+        maxScreenX = atoi(value);
+        read_value = false;
+      }
 
-          Serial.write("Marginile au fost primite cu succes!\n");
-          
-        }
+      if (c == '\n') {
+        value[i] = '\0';
+        maxScreenY = atoi(value);
+        USER_SCREEN_SIZE = false;
+
+        char aux[50];
+        sprintf(aux, "Marginile primit X: %d si Y: %d", maxScreenX, maxScreenY);
+        Serial.println(aux);
+        break;
+      }
+
+      if (read_value) {
+        value[i] = c;
+        i++;
+      }
+
+      if (c == 'W' || c == 'H') {
+        read_value = true;
+        i = 0;
       }
     }
+    
+  } else {
+    getGyroAngles();
+    generateMouseCommand();
 
-    USER_SCREEN_SIZE = false;
+    if (event || btnState) {
+      Serial.print(xVal);
+      Serial.print(",");
+      Serial.print(yVal);
+      Serial.print(",");
+      Serial.println(btnState);
+
+      ledState = !ledState;
+      digitalWrite(LED_BUILTIN, ledState);
+    }
+
+    delay(30);
+    event = false;
+
+    ledState = 0;
   }
-
-
-  getGyroAngles();
-  generateMouseCommand();
-
-  if (event || btnState) {
-    Serial.print(xVal);
-    Serial.print(",");
-    Serial.print(yVal);
-    Serial.print(",");
-    Serial.println(btnState);
-
-    ledState = !ledState;
-    digitalWrite(LED_BUILTIN, ledState);
-  }
-
-  delay(30);
-  event = false;
-
-  ledState = 0;
 }
 
 
@@ -151,24 +165,24 @@ void generateMouseCommand() {
 
   if (angleRoll > threshold) {
     xVal += angleRoll * sensitivity;
-    // if (xVal > screenLimitX) xVal = screenLimitX;
+    if (xVal > screenLimitX) xVal = screenLimitX;
 
     event = true;
   } else if (angleRoll < -threshold) {
     xVal += angleRoll * sensitivity;
-    // if (xVal < 0) xVal = 0;
+    if (xVal < 0) xVal = 0;
 
     event = true;
   }
 
   if (anglePitch > threshold) {
     yVal += anglePitch * sensitivity;
-    // if (yVal < 0) yVal = 0;
+    if (yVal > screenLimitY) yVal = screenLimitY;
 
     event = true;
   } else if (anglePitch < -threshold) {
     yVal += anglePitch * sensitivity;
-    // if (yVal > screenLimitY) yVal = screenLimitY;
+    if (yVal < 0) yVal = 0;
 
     event = true;
   }

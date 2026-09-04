@@ -2,7 +2,7 @@ import serial
 import pyautogui
 import time
 
-PORT = 'COM3'
+PORT = 'COM9'
 BAUD_RATE = 9600
 
 try:
@@ -44,6 +44,8 @@ while True:
                 y_val = max(0, min(y_val, inaltime_ecran))
 
                 pyautogui.moveTo(x_val, y_val)
+
+                print(f"X:{x_val}, Y:{y_val}")
 
                 if btn_val == 1 and not btn_pressed:
                     pyautogui.click()
