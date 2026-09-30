@@ -7,17 +7,17 @@ BAUD_RATE = 9600
 
 try:
     arduino = serial.Serial(PORT, BAUD_RATE, timeout=0.1)
-    print(f"Conectat pe {PORT}. Așteptăm inițializarea Arduino...")
+    print(f"Connect on {PORT}. Waiting for arduino")
     
     time.sleep(2)
     
-    latime_ecran, inaltime_ecran = pyautogui.size()
-    print(f"Rezoluție ecran detectată: {latime_ecran}x{inaltime_ecran}")
+    width_screen, hight_screen = pyautogui.size()
+    print(f"Screen rezolution {width_screen}x{hight_screen}")
     
-    mesaj_rezolutie = f"W{latime_ecran},H{inaltime_ecran}\n"
+    msg_rezolution = f"W{width_screen},H{hight_screen}\n"
     
-    arduino.write(mesaj_rezolutie.encode('utf-8'))
-    print("Marginile au fost trimise către Arduino. Pornește citirea senzorului!")
+    arduino.write(msg_rezolution.encode('utf-8'))
+    print("The sizes have been sent.")
 
     message = arduino.readline()
     print(message.decode('utf-8').strip())
@@ -40,8 +40,8 @@ while True:
                 y_val = int(y_str)
                 btn_val = int(btn_str)
 
-                x_val = max(0, min(x_val, latime_ecran))
-                y_val = max(0, min(y_val, inaltime_ecran))
+                x_val = max(0, min(x_val, width_screen))
+                y_val = max(0, min(y_val, hight_screen))
 
                 pyautogui.moveTo(x_val, y_val)
 
